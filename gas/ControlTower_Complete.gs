@@ -311,6 +311,54 @@ function getConsolidatedData() {
     }
   });
 
+  // ── Merge datos logísticos desde hoja "Logística" ─────────────
+  try {
+    const logSheet = ss.getSheetByName("Logística") || ss.getSheetByName("Logistica");
+    if (logSheet) {
+      const logData = getSheetData(logSheet, 1);
+      // Mapa pedido_id → fila logística (la más reciente gana)
+      const logMap = {};
+      logData.forEach(row => {
+        const pid = normalizeKey(
+          row.npedidocotizacion || row.ncotizacion || row.nproyecto ||
+          row.pedidoid || row.id || row.nro || ""
+        );
+        if (!pid) return;
+        logMap[pid] = {
+          canal:            row.metodo            || row.canal            || "",
+          estado_logistico: row.estadologistico   || row.estadooperativo  || "",
+          fecha_entrega:    formatYMD(
+                              row.despachodeentregareal || row.despachoentregareal ||
+                              row.despachorealentrega   || row.fechadespacho       || ""
+                            ),
+          metodo_entrega:   row.metododeentrega   || row.metodoentrega    || "",
+          vendedor:         row.vendedor          || row.kam              || "",
+          documento:        row.documentos        || row.documento        || "",
+          comentario_kam:   row.comentariokam     || row.comentarioskam   || "",
+        };
+      });
+      // Enriquecer allData con los campos logísticos
+      allData = allData.map(p => {
+        const lp = logMap[normalizeKey(p.pedido_id)] || {};
+        return {
+          ...p,
+          canal:            lp.canal            || p.canal            || "",
+          estado_logistico: lp.estado_logistico || p.estado_logistico || "",
+          fecha_entrega:    lp.fecha_entrega    || p.fecha_entrega    || "",
+          metodo_entrega:   lp.metodo_entrega   || p.metodo_entrega   || "",
+          vendedor:         lp.vendedor         || p.vendedor         || "",
+          documento:        lp.documento        || p.documento        || "",
+          comentario_kam:   lp.comentario_kam   || p.comentario_kam   || "",
+        };
+      });
+      console.log(`[Logística] merge OK — ${Object.keys(logMap).length} filas`);
+    } else {
+      console.warn('[Logística] hoja no encontrada, saltando merge.');
+    }
+  } catch(e) {
+    console.error("Error merging hoja Logística: " + e.message);
+  }
+
   return allData;
 }
 
