@@ -2,7 +2,7 @@ import { useData } from '../../context/DataContext';
 import {
   LayoutDashboard, Truck, Activity, TriangleAlert, MessagesSquare,
   Settings, Menu, FileText, Monitor, Lock, Unlock, UserCircle,
-  Tag, Cloud, CloudOff, RefreshCw, Factory, ClipboardCheck, Mail,
+  Tag, Cloud, CloudOff, RefreshCw, Factory, ClipboardCheck, Mail, PackageCheck,
 } from 'lucide-react';
 import { SECURITY_CONFIG } from '../../config/security';
 
@@ -13,8 +13,9 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, openSettings }) =
     { id: 'tower',    label: 'Control Tower',     icon: LayoutDashboard, roles: ['kam', 'admin'] },
     { id: 'capacity', label: 'Capacidad Talleres', icon: Activity,        roles: ['admin'] },
     { id: 'logistics',label: 'Logística & Retiros',icon: Truck,           roles: ['admin'] },
-    { id: 'labeling', label: 'Etiquetado QR',      icon: Tag,             roles: ['kam', 'admin'] },
-    { id: 'correos',  label: 'Correos Talleres',   icon: Mail,            roles: ['admin'] },
+    { id: 'labeling',     label: 'Etiquetado QR',      icon: Tag,          roles: ['kam', 'admin'] },
+    { id: 'kamlogistica', label: 'Mis Despachos',      icon: PackageCheck, roles: ['kam', 'admin'] },
+    { id: 'correos',      label: 'Correos Talleres',   icon: Mail,         roles: ['admin'] },
     { id: 'conflicts',label: 'Conflictos',          icon: TriangleAlert,   roles: ['admin'] },
     { id: 'simulator',label: 'Simulador',           icon: Settings,        roles: ['admin'] },
     { id: 'workshop', label: 'Modo Taller',         icon: Factory,         roles: ['admin'] },

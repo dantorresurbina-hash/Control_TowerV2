@@ -17,6 +17,7 @@ const QuickUpdate = lazy(() => import('./pages/QuickUpdate'));
 const WorkshopMode = lazy(() => import('./pages/WorkshopMode'));
 const YuteWorkshopMode = lazy(() => import('./pages/YuteWorkshopMode'));
 const Correos = lazy(() => import('./pages/Correos'));
+const KamLogistica = lazy(() => import('./pages/KamLogistica'));
 
 const LoadingFallback = () => (
   <div className="flex flex-col items-center justify-center h-64 text-slate-400">
@@ -31,6 +32,7 @@ const PERMISSIONS = {
   capacity: ['admin'],
   logistics: ['admin'],
   labeling: ['kam', 'admin'],
+  kamlogistica: ['kam', 'admin'],
   correos: ['admin'],
   conflicts: ['admin'],
   simulator: ['admin'],
@@ -95,6 +97,7 @@ function App() {
         case 'simulator': return <AssignmentSimulator />;
         case 'workshop': return <WorkshopMode />;
         case 'yute': return <YuteWorkshopMode />;
+        case 'kamlogistica': return <KamLogistica />;
         case 'correos': return <Correos />;
         case 'ai': return <AIAssistant contextTab={window.lastTab || 'tower'} />;
         case 'historical': return <HistoricalAnalysis />;
