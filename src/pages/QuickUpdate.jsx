@@ -214,7 +214,7 @@ const QuickUpdate = ({ pedidoId }) => {
 
   const isYute = String(pedido.taller || '').toLowerCase().includes('yute');
   const estado = String(pedido.estado_produccion || '').toLowerCase();
-  const notaCalidad = pedido.nota_calidad || pedido.controlcalidad || pedido.comentariocalidad || '';
+  const notaCalidad = pedido.comentario_taller || pedido.nota_calidad || '';
   
   const isPicking = estado.includes('etiquetado') || estado === '' || estado.includes('pendiente');
   const isPickingOk = estado.includes('asignado');
