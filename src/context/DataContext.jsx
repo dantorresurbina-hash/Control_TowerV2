@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { SECURITY_CONFIG } from '../config/security';
 
-// URL del Google Apps Script — configurada via variable de entorno
-// En Vercel: Settings → Environment Variables → VITE_GAS_URL
-const SCRIPT_URL = import.meta.env.VITE_GAS_URL;
+// URL del Google Apps Script — en producción (Vercel) usa el proxy /api/proxy
+// para evitar bloqueos CORS de Google. En local usa VITE_GAS_URL directamente.
+const SCRIPT_URL = import.meta.env.PROD
+  ? '/api/proxy'
+  : import.meta.env.VITE_GAS_URL;
 
 if (!SCRIPT_URL) {
   console.warn('[DataContext] VITE_GAS_URL no está configurada. Las sincronizaciones fallarán.');
