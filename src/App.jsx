@@ -18,6 +18,7 @@ const WorkshopMode = lazy(() => import('./pages/WorkshopMode'));
 const YuteWorkshopMode = lazy(() => import('./pages/YuteWorkshopMode'));
 const Correos = lazy(() => import('./pages/Correos'));
 const KamLogistica = lazy(() => import('./pages/KamLogistica'));
+const OpsSearch = lazy(() => import('./pages/OpsSearch'));
 
 const LoadingFallback = () => (
   <div className="flex flex-col items-center justify-center h-64 text-slate-400">
@@ -56,6 +57,18 @@ function App() {
   // Lógica de enrutamiento simple para escaneo QR (Fuera del Provider si no usa data)
   // V6.18: Enrutador Universal - Detecta /update/ de forma infalible
   const currentHref = window.location.href;
+  if (currentHref.toLowerCase().includes('/ops')) {
+    return (
+      <ErrorBoundary>
+        <DataProvider>
+          <Suspense fallback={<LoadingFallback />}>
+            <OpsSearch />
+          </Suspense>
+        </DataProvider>
+      </ErrorBoundary>
+    );
+  }
+
   if (currentHref.toLowerCase().includes('/update/')) {
     // Extraer el ID de la URL original (preservando mayúsculas) usando regex
     const match = currentHref.match(/\/update\/([^\/\?]+)/i);
