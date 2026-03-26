@@ -18,7 +18,8 @@ const WorkshopMode = lazy(() => import('./pages/WorkshopMode'));
 const YuteWorkshopMode = lazy(() => import('./pages/YuteWorkshopMode'));
 const Correos = lazy(() => import('./pages/Correos'));
 const KamLogistica = lazy(() => import('./pages/KamLogistica'));
-const OpsSearch = lazy(() => import('./pages/OpsSearch'));
+const OpsSearch  = lazy(() => import('./pages/OpsSearch'));
+const BodegaMode = lazy(() => import('./pages/BodegaMode'));
 
 const LoadingFallback = () => (
   <div className="flex flex-col items-center justify-center h-64 text-slate-400">
@@ -35,6 +36,7 @@ const PERMISSIONS = {
   labeling: ['kam', 'admin'],
   kamlogistica: ['kam', 'admin'],
   correos: ['admin'],
+  bodega:  ['admin'],
   conflicts: ['admin'],
   simulator: ['admin'],
   workshop: ['admin'],
@@ -63,6 +65,18 @@ function App() {
         <DataProvider>
           <Suspense fallback={<LoadingFallback />}>
             <OpsSearch />
+          </Suspense>
+        </DataProvider>
+      </ErrorBoundary>
+    );
+  }
+
+  if (currentHref.toLowerCase().includes('/bodega')) {
+    return (
+      <ErrorBoundary>
+        <DataProvider>
+          <Suspense fallback={<LoadingFallback />}>
+            <BodegaMode />
           </Suspense>
         </DataProvider>
       </ErrorBoundary>
@@ -112,6 +126,7 @@ function App() {
         case 'yute': return <YuteWorkshopMode />;
         case 'kamlogistica': return <KamLogistica />;
         case 'correos': return <Correos />;
+        case 'bodega':  return <BodegaMode />;
         case 'ai': return <AIAssistant contextTab={window.lastTab || 'tower'} />;
         case 'historical': return <HistoricalAnalysis />;
         default: return <ControlTower />;

@@ -2,7 +2,7 @@ import { useData } from '../../context/DataContext';
 import {
   LayoutDashboard, Truck, Activity, TriangleAlert, MessagesSquare,
   Settings, Menu, FileText, Monitor, Lock, Unlock, UserCircle,
-  Tag, Cloud, CloudOff, RefreshCw, Factory, ClipboardCheck, Mail, PackageCheck,
+  Tag, Cloud, CloudOff, RefreshCw, Factory, ClipboardCheck, Mail, PackageCheck, Warehouse,
 } from 'lucide-react';
 import { SECURITY_CONFIG } from '../../config/security';
 
@@ -16,6 +16,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, openSettings }) =
     { id: 'labeling',     label: 'Etiquetado QR',      icon: Tag,          roles: ['kam', 'admin'] },
     { id: 'kamlogistica', label: 'Mis Despachos',      icon: PackageCheck, roles: ['kam', 'admin'] },
     { id: 'correos',      label: 'Correos Talleres',   icon: Mail,         roles: ['admin'] },
+    { id: 'bodega',       label: 'Modo Bodega',        icon: Warehouse,    roles: ['admin'] },
     { id: 'conflicts',label: 'Conflictos',          icon: TriangleAlert,   roles: ['admin'] },
     { id: 'simulator',label: 'Simulador',           icon: Settings,        roles: ['admin'] },
     { id: 'workshop', label: 'Modo Taller',         icon: Factory,         roles: ['admin'] },

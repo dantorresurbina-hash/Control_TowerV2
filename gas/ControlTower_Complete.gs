@@ -47,6 +47,9 @@ const CFG = {
     "Espera del VB cliente","En modificacion","Sin stock",
     "listo taller aun sin retirar","Listo Taller",
     "Ok. P. Factura","Enviado","Entregado","Anulado",
+    // Flujo DIRECTO / Bodega
+    "Pendiente de Armado","En Picking","En Packing",
+    "Listo Despacho","Listo Retiro Tienda",
   ],
   ESTADOS_LOGISTICOS: [
     "Pendiente de preparación","En preparación",
