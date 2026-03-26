@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { DataContext, cleanId } from '../context/DataContext';
-import { CheckCircle2, Factory, Package, ArrowRight, Loader2, AlertTriangle, Sparkles, ShieldCheck, ShieldAlert, PlayCircle, MessageSquare, ClipboardCheck, User, X, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Factory, Package, ArrowRight, Loader2, AlertTriangle, Sparkles, ShieldCheck, ShieldAlert, PlayCircle, MessageSquare, ClipboardCheck, User, X, RefreshCw, Star } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import CryptoJS from 'crypto-js';
 import { SECURITY_CONFIG } from '../config/security';
@@ -214,6 +214,7 @@ const QuickUpdate = ({ pedidoId }) => {
 
   const isYute = String(pedido.taller || '').toLowerCase().includes('yute');
   const estado = String(pedido.estado_produccion || '').toLowerCase();
+  const notaCalidad = pedido.nota_calidad || pedido.controlcalidad || pedido.comentariocalidad || '';
   
   const isPicking = estado.includes('etiquetado') || estado === '' || estado.includes('pendiente');
   const isPickingOk = estado.includes('asignado');
@@ -288,8 +289,8 @@ const QuickUpdate = ({ pedidoId }) => {
         </div>
       </div>
 
-      {/* Resumen de Trazabilidad Yute */}
-      {isYute && (
+      {/* Resumen de Trazabilidad Yute — solo visible mientras no está completado */}
+      {isYute && !isListoTaller && (
         <div className="bg-slate-800 rounded-2xl p-6 mb-6 border border-slate-700 shadow-xl">
            <p className="text-slate-500 text-[10px] uppercase font-black mb-4 flex items-center gap-2">
              <ClipboardCheck size={14} className="text-indigo-400" /> HISTORIAL DE PROCESO
@@ -319,8 +320,8 @@ const QuickUpdate = ({ pedidoId }) => {
         </div>
       )}
 
-      {/* Selector de Operario (Solo Yute) */}
-      {isYute && !success && (
+      {/* Selector de Operario (Solo Yute, solo cuando aún hay pasos) */}
+      {isYute && !success && !isListoTaller && (
         <div className="bg-slate-800 rounded-2xl p-6 mb-6 border border-indigo-500/30 shadow-xl shadow-indigo-900/20">
           <p className="text-slate-500 text-xs uppercase font-bold mb-3 flex items-center gap-2">
             <User size={14} className="text-indigo-400" /> 
@@ -362,16 +363,74 @@ const QuickUpdate = ({ pedidoId }) => {
         </div>
       )}
 
-      <div className="mb-8 flex flex-col items-center">
-        <p className="text-slate-500 text-xs uppercase font-bold mb-3 text-center tracking-widest">Estado Actual del Pedido</p>
-        <StatusBadge 
-          status={pedido.estado_produccion || 'Pendiente'} 
-          className="scale-125 py-1 px-4 shadow-lg shadow-blue-500/10"
-        />
-      </div>
+      {!isListoTaller && (
+        <div className="mb-8 flex flex-col items-center">
+          <p className="text-slate-500 text-xs uppercase font-bold mb-3 text-center tracking-widest">Estado Actual del Pedido</p>
+          <StatusBadge
+            status={pedido.estado_produccion || 'Pendiente'}
+            className="scale-125 py-1 px-4 shadow-lg shadow-blue-500/10"
+          />
+        </div>
+      )}
 
-      {/* Botones de Acción */}
-      <div className="space-y-4">
+      {/* Vista Cliente — pedido completado */}
+      {isListoTaller && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4 mb-8">
+          {/* Card principal cliente */}
+          <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-900/20 border border-emerald-500/30 rounded-2xl p-6 text-center">
+            <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 size={32} className="text-emerald-400" />
+            </div>
+            <h2 className="text-2xl font-black text-emerald-400 mb-1">LISTO PARA RETIRO</h2>
+            <p className="text-slate-400 text-sm">Tu pedido ha completado el proceso de producción.</p>
+          </div>
+
+          {/* Resumen pedido */}
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-5 space-y-3">
+            <p className="text-slate-500 text-[10px] uppercase font-black tracking-widest">Resumen del Pedido</p>
+            <div className="flex justify-between items-center text-sm border-b border-slate-700 pb-3">
+              <span className="text-slate-500 font-bold uppercase">N° Pedido</span>
+              <span className="font-mono text-slate-200 font-bold">#{pedidoId}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm border-b border-slate-700 pb-3">
+              <span className="text-slate-500 font-bold uppercase">Proyecto</span>
+              <span className="text-slate-200 font-bold text-right max-w-[55%]">{pedido.nombre_proyecto || pedido.proyecto}</span>
+            </div>
+            {pedido.sku && (
+              <div className="flex justify-between items-center text-sm border-b border-slate-700 pb-3">
+                <span className="text-slate-500 font-bold uppercase">Referencia</span>
+                <span className="font-mono text-slate-300">{pedido.sku}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center text-sm border-b border-slate-700 pb-3">
+              <span className="text-slate-500 font-bold uppercase">Unidades</span>
+              <span className="text-blue-400 font-black text-lg font-mono">{pedido.unidades || 0}</span>
+            </div>
+            {bNum && bTotal && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-slate-500 font-bold uppercase">Bulto</span>
+                <span className="text-slate-200 font-bold">{bNum} de {bTotal}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Nota de Control de Calidad */}
+          <div className={`border rounded-2xl p-5 ${notaCalidad ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-slate-800 border-slate-700'}`}>
+            <p className="text-slate-500 text-[10px] uppercase font-black tracking-widest mb-3 flex items-center gap-2">
+              <Star size={12} className={notaCalidad ? 'text-indigo-400' : 'text-slate-600'} />
+              Control de Calidad
+            </p>
+            {notaCalidad ? (
+              <p className="text-slate-200 text-sm font-medium italic">"{notaCalidad}"</p>
+            ) : (
+              <p className="text-slate-500 text-sm">Sin observaciones registradas.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Botones de Acción — solo cuando hay pasos pendientes */}
+      {!isListoTaller && <div className="space-y-4">
         {success ? (
           <div className="bg-green-500/20 border border-green-500/50 rounded-2xl p-8 text-center animate-in fade-in zoom-in duration-300">
             <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
@@ -457,7 +516,7 @@ const QuickUpdate = ({ pedidoId }) => {
             )}
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Modal Secundario para Comentarios Móvil */}
       {showComentarioModal && (

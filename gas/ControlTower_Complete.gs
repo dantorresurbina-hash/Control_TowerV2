@@ -293,6 +293,7 @@ function getConsolidatedData() {
           impresor:                row.impresor || row.operarioimpresion || "",
           comentario_taller:       row.comentariostaller || "",
           operario_picking:        row.operariopicking || "",
+          nota_calidad:            row.controlcalidad || row.notacalidad || row.comentariocalidad || row.calidad || row.observacioncalidad || "",
           sku:                     row.sku || "",
           familia:                 row.familia || "",
           vendedor:                row.vendedor || row.kam || "",
