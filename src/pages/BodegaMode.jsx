@@ -19,24 +19,31 @@ const STAFF_BODEGA = [
 
 // ── Flujo DIRECTO ────────────────────────────────────────────
 const ESTADOS = [
-  { id: 'pendiente', label: 'Pendiente',      color: 'bg-slate-100 text-slate-600',    dot: 'bg-slate-400',    value: 'Pendiente de Armado' },
-  { id: 'picking',   label: 'En Picking',     color: 'bg-blue-100 text-blue-700',      dot: 'bg-blue-500',     value: 'En Picking'           },
-  { id: 'packing',   label: 'En Packing',     color: 'bg-yellow-100 text-yellow-700',  dot: 'bg-yellow-500',   value: 'En Packing'           },
-  { id: 'despacho',  label: 'Listo Despacho', color: 'bg-emerald-100 text-emerald-700',dot: 'bg-emerald-500',  value: 'Listo Despacho'       },
-  { id: 'tienda',    label: 'Listo Retiro',   color: 'bg-purple-100 text-purple-700',  dot: 'bg-purple-500',   value: 'Listo Retiro Tienda'  },
+  { id: 'pendiente', label: 'Pendiente',      color: 'bg-slate-100 text-slate-600',    value: 'Pendiente de Armado'  },
+  { id: 'picking',   label: 'En Picking',     color: 'bg-blue-100 text-blue-700',      value: 'En Picking'           },
+  { id: 'packing',   label: 'En Packing',     color: 'bg-yellow-100 text-yellow-700',  value: 'En Packing'           },
+  { id: 'transito',  label: 'En Tránsito',    color: 'bg-orange-100 text-orange-700',  value: 'En Tránsito Tienda'   },
+  { id: 'despacho',  label: 'Listo Despacho', color: 'bg-emerald-100 text-emerald-700',value: 'Listo Despacho'       },
+  { id: 'tienda',    label: 'Listo Retiro',   color: 'bg-purple-100 text-purple-700',  value: 'Listo Retiro Tienda'  },
 ];
 
-const NEXT_ACTIONS = {
-  'Pendiente de Armado': [
-    { label: 'Iniciar Picking', next: 'En Picking', icon: ClipboardList, color: 'bg-blue-600 hover:bg-blue-700 text-white' },
-  ],
-  'En Picking': [
-    { label: 'Pasar a Packing', next: 'En Packing', icon: Box, color: 'bg-yellow-500 hover:bg-yellow-600 text-white' },
-  ],
-  'En Packing': [
-    { label: 'Listo — Despacho',       next: 'Listo Despacho',      icon: Truck,  color: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
-    { label: 'Listo — Retiro Tienda',  next: 'Listo Retiro Tienda', icon: Store,  color: 'bg-purple-600 hover:bg-purple-700 text-white'   },
-  ],
+// Acciones según estado y método de entrega
+const getNextActions = (estado, metodoEntrega) => {
+  const esRetiro = /retiro|tienda/i.test(metodoEntrega || '');
+  switch (estado) {
+    case 'Pendiente de Armado':
+      return [{ label: 'Iniciar Picking', next: 'En Picking', icon: ClipboardList, color: 'bg-blue-600 hover:bg-blue-700 text-white' }];
+    case 'En Picking':
+      return [{ label: 'Pasar a Packing', next: 'En Packing', icon: Box, color: 'bg-yellow-500 hover:bg-yellow-600 text-white' }];
+    case 'En Packing':
+      return esRetiro
+        ? [{ label: 'Enviar a tienda', next: 'En Tránsito Tienda', icon: Truck, color: 'bg-orange-500 hover:bg-orange-600 text-white' }]
+        : [{ label: 'Listo para Despacho', next: 'Listo Despacho', icon: Truck, color: 'bg-emerald-600 hover:bg-emerald-700 text-white' }];
+    case 'En Tránsito Tienda':
+      return [{ label: '✓ Listo para Retiro en Tienda', next: 'Listo Retiro Tienda', icon: Store, color: 'bg-purple-600 hover:bg-purple-700 text-white' }];
+    default:
+      return [];
+  }
 };
 
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -119,10 +126,10 @@ const PedidoCard = ({ p, operario, onAction, updating }) => {
   const [labelBulto, setLabelBulto] = useState(1);
 
   const estado   = p.estado_produccion || 'Pendiente de Armado';
-  const actions  = NEXT_ACTIONS[estado] || [];
   const metodo   = p.metodo_entrega || p.canal || '';
   const isRetiro = /retiro|tienda/i.test(metodo);
   const doc      = p.documento || '';
+  const actions  = getNextActions(estado, metodo);
 
   const estadoInfo = ESTADOS.find(e => norm(e.value) === norm(estado)) || ESTADOS[0];
 
@@ -189,7 +196,7 @@ const PedidoCard = ({ p, operario, onAction, updating }) => {
               <button
                 key={action.next}
                 disabled={!operario || operario === 'Selecciona tu nombre' || updating === p.pedido_id}
-                onClick={() => onAction(p, action.next)}
+                onClick={() => onAction(p, action.next, bultos)}
                 className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm disabled:opacity-40 active:scale-[0.98] transition-all ${action.color}`}
               >
                 {updating === p.pedido_id
@@ -204,10 +211,10 @@ const PedidoCard = ({ p, operario, onAction, updating }) => {
 
         {(estado === 'Listo Despacho' || estado === 'Listo Retiro Tienda') && (
           <div className="px-4 py-3">
-            <div className="flex items-center gap-2 bg-emerald-50 rounded-xl px-3 py-2.5">
-              <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
-              <span className="text-sm font-bold text-emerald-700">
-                {estado === 'Listo Retiro Tienda' ? 'Listo para retiro en tienda' : 'Listo para despacho'}
+            <div className={`flex items-center gap-2 rounded-xl px-3 py-2.5 ${estado === 'Listo Retiro Tienda' ? 'bg-purple-50' : 'bg-emerald-50'}`}>
+              <CheckCircle2 size={18} className={`shrink-0 ${estado === 'Listo Retiro Tienda' ? 'text-purple-500' : 'text-emerald-500'}`} />
+              <span className={`text-sm font-bold ${estado === 'Listo Retiro Tienda' ? 'text-purple-700' : 'text-emerald-700'}`}>
+                {estado === 'Listo Retiro Tienda' ? '✓ Listo para retiro en tienda' : '✓ Listo para despacho'}
               </span>
             </div>
           </div>
@@ -254,12 +261,15 @@ const BodegaMode = () => {
     return estado ? pedidos.filter(p => norm(p.estado_produccion || 'Pendiente de Armado') === norm(estado.value)) : pedidos;
   }, [pedidos, filtroEstado]);
 
-  const handleAction = async (p, nextEstado) => {
-    const id = p.pedido_id || p.id;
-    setUpdating(id);
+  const handleAction = async (p, nextEstado, bultos = 1) => {
+    const id     = p.pedido_id || p.id;
     const nombre = operario === 'Otro' ? nombreManual : operario;
+    setUpdating(id);
     try {
-      await updatePedidoStatus(id, nextEstado, { operario: nombre });
+      await updatePedidoStatus(id, nextEstado, {
+        usuario: nombre,
+        bultos,
+      });
     } finally {
       setUpdating(null);
     }

@@ -259,7 +259,7 @@ export const DataProvider = ({ children }) => {
         estado: newStatus || '',
         cells: extraData.cells || {},
         bultos: extraData.bultos,
-        usuario: 'Dashboard',
+        usuario: extraData.usuario || 'Dashboard',
       });
       if (!result.success) throw new Error(result.error || 'Error servidor');
       return true;

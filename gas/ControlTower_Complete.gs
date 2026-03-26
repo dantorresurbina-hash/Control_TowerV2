@@ -49,7 +49,7 @@ const CFG = {
     "Ok. P. Factura","Enviado","Entregado","Anulado",
     // Flujo DIRECTO / Bodega
     "Pendiente de Armado","En Picking","En Packing",
-    "Listo Despacho","Listo Retiro Tienda",
+    "En Tránsito Tienda","Listo Despacho","Listo Retiro Tienda",
   ],
   ESTADOS_LOGISTICOS: [
     "Pendiente de preparación","En preparación",
@@ -511,39 +511,55 @@ function handleQRScan(pedidoId, usuario, comentario, bulto, total, signature) {
  * Ejemplo: cells = { "J": "2024-01-15", "AH": "Gabriel Acevedo" }
  */
 function handleUpdate(pedidoId, estado, bultos, usuario, cells) {
-  const ss    = SpreadsheetApp.openById(CFG.SPREADSHEET_ID);
-  const sheet = ss.getSheetByName("Seguimiento talleres");
-  if (!sheet) throw new Error("Hoja 'Seguimiento talleres' no encontrada.");
-
-  const data     = getSheetData(sheet, 2);
+  const ss       = SpreadsheetApp.openById(CFG.SPREADSHEET_ID);
   const searchId = normalizeKey(pedidoId);
-  let rowIndex   = -1, pedidoRaw = null;
+  let sheet, rowIndex = -1, pedidoRaw = null, headerRow = 2, isDirecto = false;
 
-  for (let i = 0; i < data.length; i++) {
-    const rowId = normalizeKey(data[i].ncotizacion || data[i].nproyecto || data[i].pedidoid || data[i].id || "");
-    if (rowId === searchId) {
-      rowIndex  = i + 3; // headerRow=2, datos desde fila 3
-      pedidoRaw = data[i];
-      break;
+  // ── 1. Buscar en "Seguimiento talleres" ──────────────────────
+  const sheetSeg = ss.getSheetByName("Seguimiento talleres");
+  if (sheetSeg) {
+    const data = getSheetData(sheetSeg, 2);
+    for (let i = 0; i < data.length; i++) {
+      const rowId = normalizeKey(data[i].ncotizacion || data[i].nproyecto || data[i].pedidoid || data[i].id || "");
+      if (rowId === searchId) {
+        sheet     = sheetSeg;
+        rowIndex  = i + 3;
+        pedidoRaw = data[i];
+        headerRow = 2;
+        break;
+      }
     }
   }
+
+  // ── 2. Si no encontrado, buscar en "Sin Impresión" ───────────
+  if (!pedidoRaw) {
+    const sheetSin = ss.getSheetByName("Sin Impresión");
+    if (sheetSin) {
+      const dataSin = getSheetData(sheetSin, 1);
+      for (let i = 0; i < dataSin.length; i++) {
+        const rowId = normalizeKey(dataSin[i].nproyecto || dataSin[i].ncotizacion || dataSin[i].pedidoid || dataSin[i].id || "");
+        if (rowId === searchId) {
+          sheet     = sheetSin;
+          rowIndex  = i + 2; // headerRow=1, datos desde fila 2
+          pedidoRaw = dataSin[i];
+          headerRow = 1;
+          isDirecto = true;
+          break;
+        }
+      }
+    }
+  }
+
   if (!pedidoRaw) throw new Error("Pedido no encontrado: " + pedidoId);
 
   // ── Actualizar celdas específicas ──────────────────────────
-  // Soporta tanto nombre de encabezado como letra de columna
   if (cells && typeof cells === 'object') {
     for (const key in cells) {
       if (!key || cells[key] === undefined || cells[key] === null) continue;
-
-      // 1. Intentar por nombre de encabezado
-      let col = getHeaderCol(sheet, key, 2);
-
-      // 2. Fallback: si la clave parece una letra de columna (A, F, J, AH, etc.)
+      let col = getHeaderCol(sheet, key, headerRow);
       if (col === -1 && /^[A-Z]{1,3}$/.test(String(key).toUpperCase())) {
         col = colLetterToNum(key);
-        console.log(`[handleUpdate] "${key}" no es encabezado → usando letra de columna → col ${col}`);
       }
-
       if (col > 0) {
         const val  = cells[key];
         const cell = sheet.getRange(rowIndex, col);
@@ -551,34 +567,58 @@ function handleUpdate(pedidoId, estado, bultos, usuario, cells) {
         else if (val === false || val === 'false') cell.setValue(false);
         else cell.setValue(String(val));
       } else {
-        console.warn(`[handleUpdate] Columna "${key}" no encontrada. Verifica el encabezado en fila 2.`);
+        console.warn(`[handleUpdate] Columna "${key}" no encontrada.`);
       }
     }
   }
 
   // ── Actualizar estado de producción ───────────────────────
   if (estado) {
-    const colStatus = getHeaderCol(sheet, "Estado", 2)
-      || getHeaderCol(sheet, "Estado taller", 2)
-      || getHeaderCol(sheet, "Estado Produccion", 2)
-      || getHeaderCol(sheet, "Estado Producción", 2);
+    const colStatus = isDirecto
+      ? getHeaderCol(sheet, "Estado Operativo", headerRow)
+      : (getHeaderCol(sheet, "Estado", headerRow)
+         || getHeaderCol(sheet, "Estado taller", headerRow)
+         || getHeaderCol(sheet, "Estado Produccion", headerRow)
+         || getHeaderCol(sheet, "Estado Producción", headerRow));
 
     if (colStatus > 0) {
-      const anterior = pedidoRaw.estado || pedidoRaw.estadotaller || pedidoRaw.estadoproduccion || "";
+      const anterior = pedidoRaw.estadooperativo || pedidoRaw.estado || pedidoRaw.estadotaller || "";
       sheet.getRange(rowIndex, colStatus).setValue(estado);
       logCambio({
         pedidoId: searchId, campo: "Estado",
         anterior, nuevo: estado,
         usuario: usuario || "Dashboard",
-        taller:  pedidoRaw.taller || "",
-        tipoAccion: "MANUAL",
+        taller:  pedidoRaw.taller || "Bodega",
+        tipoAccion: isDirecto ? "BODEGA" : "MANUAL",
       });
+    }
+
+    // ── Columnas específicas de bodega (Sin Impresión) ─────────
+    if (isDirecto) {
+      const now       = new Date();
+      const usuarioVal = usuario || "Bodega";
+      const estadoNorm = normalizeString(estado);
+
+      if (estadoNorm === "enpicking") {
+        const colFecha   = getHeaderCol(sheet, "Fecha de Picking", headerRow);
+        const colUsuario = getHeaderCol(sheet, "Usuario Picking", headerRow);
+        if (colFecha   > 0) sheet.getRange(rowIndex, colFecha).setValue(now);
+        if (colUsuario > 0) sheet.getRange(rowIndex, colUsuario).setValue(usuarioVal);
+      }
+
+      if (estadoNorm === "listodespacho" || estadoNorm === "listoretirotiendo" || estadoNorm === "listoretirotiento" || estadoNorm === "listoretirotientda" || estadoNorm === "listoretirotientda" || estado === "Listo Retiro Tienda" || estado === "Listo Despacho" || estado === "En Tránsito Tienda") {
+        const colFecha   = getHeaderCol(sheet, "Fecha Despacho", headerRow);
+        const colUsuario = getHeaderCol(sheet, "Usuario Despacho", headerRow);
+        if (colFecha   > 0) sheet.getRange(rowIndex, colFecha).setValue(now);
+        if (colUsuario > 0) sheet.getRange(rowIndex, colUsuario).setValue(usuarioVal);
+      }
     }
   }
 
-  // ── Actualizar bultos ──────────────────────────────────────
+  // ── Actualizar bultos / cajas ──────────────────────────────
   if (bultos) {
-    const colBultos = getHeaderCol(sheet, "Bultos", 2) || getHeaderCol(sheet, "Cajas", 2);
+    const colBultos = getHeaderCol(sheet, "Bultos", headerRow)
+      || getHeaderCol(sheet, "Cajas", headerRow);
     if (colBultos > 0) sheet.getRange(rowIndex, colBultos).setValue(bultos);
   }
 
