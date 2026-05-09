@@ -17,6 +17,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, openSettings }) =
     { id: 'kamlogistica', label: 'Mis Despachos',      icon: PackageCheck, roles: ['kam', 'admin'] },
     { id: 'correos',      label: 'Correos Talleres',   icon: Mail,         roles: ['admin'] },
     { id: 'bodega',       label: 'Modo Bodega',        icon: Warehouse,    roles: ['admin'] },
+    { id: 'dispatch',     label: 'Guías de Despacho',  icon: FileText,     roles: ['kam', 'admin'] },
     { id: 'conflicts',label: 'Conflictos',          icon: TriangleAlert,   roles: ['admin'] },
     { id: 'simulator',label: 'Simulador',           icon: Settings,        roles: ['admin'] },
     { id: 'workshop', label: 'Modo Taller',         icon: Factory,         roles: ['admin'] },
