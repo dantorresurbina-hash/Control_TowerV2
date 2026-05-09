@@ -312,6 +312,30 @@ export const DataProvider = ({ children }) => {
     }
   };
 
+  // ── ACTUALIZACIÓN HOJA LOGÍSTICA ──────────────────────────
+  // Escribe celdas directamente en la hoja "Logística" del Spreadsheet.
+  // `localFields` se aplica de forma optimista al estado local.
+  const updateLogisticaCell = async (pedidoId, cells, localFields = {}) => {
+    setData((prev) =>
+      (prev || []).map((p) =>
+        cleanId(p.pedido_id || p.id) === cleanId(pedidoId)
+          ? { ...p, ...localFields }
+          : p
+      )
+    );
+
+    if (!SCRIPT_URL) return true;
+
+    try {
+      const result = await gasPost({ action: 'update_logistica', pedidoId, cells });
+      if (!result.success) throw new Error(result.error || 'Error en update_logistica');
+      return true;
+    } catch (err) {
+      console.error('[updateLogisticaCell]', err.message);
+      return false;
+    }
+  };
+
   // ── INGESTA DIRECTA (MANIFIESTOS) ─────────────────────────
   const uploadDirectOrders = async (pedidosArray) => {
     if (!SCRIPT_URL) return { success: false, error: 'VITE_GAS_URL no configurada' };
@@ -365,6 +389,7 @@ export const DataProvider = ({ children }) => {
         updateRole,
         updatePedidoStatus,
         updatePedidoStatusBulk,
+        updateLogisticaCell,
         uploadDirectOrders,
         syncQueueStatus: syncQueue.length,
       }}

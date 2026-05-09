@@ -43,8 +43,9 @@ const COLS = [
   { key: 'canal',              label: 'Método',          w: 'w-20'  },
   { key: 'pedido_id',          label: 'N° Pedido',       w: 'w-24'  },
   { key: 'nombre_proyecto',    label: 'Proyecto',        w: 'w-56'  },
-  { key: 'fecha_retiro_ideal', label: 'Retiro Taller',   w: 'w-28'  },
-  { key: 'fecha_entrega',      label: 'Despacho Real',   w: 'w-28'  },
+  { key: 'fecha_retiro_ideal',    label: 'Retiro Taller',       w: 'w-28'  },
+  { key: 'fecha_entrega_cliente', label: 'Despacho Cliente',    w: 'w-28'  },
+  { key: 'fecha_entrega',         label: 'Despacho Real',       w: 'w-28'  },
   { key: 'estado_produccion',  label: 'Estado Taller',   w: 'w-28'  },
   { key: 'estado_logistico',   label: 'Estado Logístico',w: 'w-44'  },
   { key: 'taller',             label: 'Taller',          w: 'w-36'  },
@@ -55,7 +56,7 @@ const COLS = [
 ];
 
 const KamLogistica = () => {
-  const { data, userRole, updatePedidoStatus } = useData();
+  const { data, userRole, updateLogisticaCell } = useData();
 
   const [search,    setSearch]    = useState('');
   const [filterVendedor, setFilterVendedor] = useState('todos');
@@ -136,10 +137,7 @@ const KamLogistica = () => {
   const saveComment = async (p) => {
     const val = editValue.trim();
     setEditingKey(null);
-    await updatePedidoStatus(p.pedido_id, p.estado_produccion, {
-      comentario_kam: val,
-      cells: { M: val },
-    });
+    await updateLogisticaCell(p.pedido_id, { M: val }, { comentario_kam: val });
   };
 
   const SortIcon = ({ col }) => {
@@ -252,6 +250,13 @@ const KamLogistica = () => {
                   {/* Retiro taller ideal */}
                   <td className="px-3 py-2.5 text-slate-600 whitespace-nowrap">
                     {fmtDate(p.fecha_retiro_ideal)}
+                  </td>
+
+                  {/* Despacho Cliente (propuesto) */}
+                  <td className="px-3 py-2.5 whitespace-nowrap">
+                    {p.fecha_entrega_cliente
+                      ? <span className="text-indigo-700 font-semibold text-xs">{fmtDate(p.fecha_entrega_cliente)}</span>
+                      : <span className="text-slate-300 text-xs">–</span>}
                   </td>
 
                   {/* Despacho real */}
