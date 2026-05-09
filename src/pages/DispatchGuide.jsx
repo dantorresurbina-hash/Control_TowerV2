@@ -403,7 +403,7 @@ const DispatchGuide = () => {
     const fecha = new Date().toISOString();
     await Promise.all(
       proyectosConfirmados.map(p =>
-        updatePedidoStatus(p.pedido_id, p.estado_produccion, {
+        updatePedidoStatus(p.pedido_id, 'En Proceso', {
           estado_logistico: 'Recibido Taller',
           recibido_por: recibidoPor || 'Sin registrar',
           fecha_recepcion_taller: fecha,
