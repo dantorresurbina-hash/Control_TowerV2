@@ -404,7 +404,7 @@ const DispatchGuide = () => {
     await Promise.all(
       proyectosConfirmados.map(p =>
         updatePedidoStatus(p.pedido_id, 'En Proceso', {
-          estado_logistico: 'Recibido Taller',
+          estado_logistico: 'En preparación',
           recibido_por: recibidoPor || 'Sin registrar',
           fecha_recepcion_taller: fecha,
           ...(notas ? { comentario_recepcion: notas } : {}),
