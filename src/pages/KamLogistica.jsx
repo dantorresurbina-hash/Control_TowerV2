@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef } from 'react';
 import { useData } from '../context/DataContext';
-import { Search, ExternalLink, ChevronUp, ChevronDown, ChevronsUpDown, Pencil } from 'lucide-react';
+import { Search, ExternalLink, ChevronUp, ChevronDown, ChevronsUpDown, Pencil, Link2 } from 'lucide-react';
 
 // ── Normalización ─────────────────────────────────────────────
 const norm = (s) =>
@@ -30,6 +30,18 @@ const ESTADO_STYLES = {
 const estadoStyle = (s) =>
   ESTADO_STYLES[norm(s)] || 'bg-gray-100 text-gray-600 border-gray-200';
 
+// ── URL de tracking por carrier ───────────────────────────────
+const trackingUrl = (tracking, carrier) => {
+  if (!tracking) return null;
+  const c = String(carrier || '').toLowerCase();
+  const t = String(tracking).trim();
+  if (c.includes('starken')) return `https://www.starken.cl/seguimiento?codigo=${t}`;
+  if (c.includes('chilexpress')) return `https://www.chilexpress.cl/operaciones/tracking/?numero=${t}`;
+  if (c.includes('99minutos') || c.includes('99')) return `https://tracking.99minutos.com/?id=${t}`;
+  if (c.includes('enviame')) return `https://seguimiento.enviame.io/${t}`;
+  return null;
+};
+
 // ── Formato fecha DD/MM ───────────────────────────────────────
 const fmtDate = (v) => {
   if (!v) return '–';
@@ -53,6 +65,8 @@ const COLS = [
   { key: 'vendedor',           label: 'Vendedor',        w: 'w-32'  },
   { key: 'documento',          label: 'Documento',       w: 'w-28'  },
   { key: 'comentario_kam',     label: 'Comentario KAM',  w: 'w-52'  },
+  { key: 'estado_envio',       label: 'Estado Envío',    w: 'w-36'  },
+  { key: 'tracking',           label: 'Tracking',        w: 'w-36'  },
 ];
 
 const KamLogistica = () => {
@@ -339,6 +353,36 @@ const KamLogistica = () => {
                         <Pencil size={10} className="shrink-0 text-slate-300 group-hover:text-blue-400 transition-colors" />
                       </button>
                     )}
+                  </td>
+
+                  {/* Estado Envío (col N — sincronizado por GAS) */}
+                  <td className="px-3 py-2.5 whitespace-nowrap">
+                    {p.estado_envio ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full border bg-indigo-50 text-indigo-700 border-indigo-200 font-medium">
+                        {p.estado_envio}
+                      </span>
+                    ) : <span className="text-slate-300 text-xs">–</span>}
+                  </td>
+
+                  {/* Tracking (col O — link por carrier) */}
+                  <td className="px-3 py-2.5 whitespace-nowrap">
+                    {p.tracking ? (() => {
+                      const url = trackingUrl(p.tracking, p.metodo_entrega);
+                      return url ? (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs font-medium text-blue-500 hover:text-blue-700"
+                          title={p.tracking}
+                        >
+                          <Link2 size={11} />
+                          <span className="truncate max-w-[100px]">{p.tracking}</span>
+                        </a>
+                      ) : (
+                        <span className="text-xs text-slate-600 font-mono">{p.tracking}</span>
+                      );
+                    })() : <span className="text-slate-300 text-xs">–</span>}
                   </td>
                 </tr>
               ))

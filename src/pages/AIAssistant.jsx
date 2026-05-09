@@ -8,35 +8,31 @@ import { useData, getLocalYMD, parseNumber } from '../context/DataContext';
 import { designKnowledge } from '../data/knowledgeBase';
 
 const getContextualQuestions = (tab) => {
-  const common = [
-    "¿Qué talleres tienen capacidad disponible?",
-    "¿Hay riesgo de saturación la próxima semana?"
-  ];
-
+  // Preguntas basadas en las 97 consultas reales de abril–mayo 2025
   switch (tab) {
     case 'capacity':
       return [
-        ...common,
+        "¿Qué talleres tienen capacidad disponible?",
+        "¿Hay riesgo de saturación la próxima semana?",
         "¿Quién tiene más espacio para 3000 imp?",
-        "¿Cómo ha evolucionado el Health Score de Pintapack?"
       ];
     case 'logistics':
       return [
-        "¿Qué pedidos están listos para retiro hoy?",
-        "¿Cuál es el taller más cercano a la planta?",
-        "¿Hay transportes pendientes de confirmación?"
+        "¿Qué pedidos se despachan hoy?",
+        "¿A qué hora llegan los pedidos de hoy AM u PM?",
+        "¿Hay pedidos con fecha de entrega pasada sin llegar?",
       ];
     case 'conflicts':
       return [
-        "¿Por qué está atrasado el pedido #5543?",
+        "¿Cuáles son los pedidos críticos o atrasados?",
         "¿Qué taller tiene más pedidos críticos?",
-        "¿Cómo afectará el atraso de DOVE a la entrega?"
+        "¿Hay pedidos con VB pendiente que se retiran pronto?",
       ];
     default:
       return [
-        ...common,
+        "¿Qué pedidos se despachan hoy?",
+        "¿A qué hora llegan los pedidos AM u PM?",
         "¿Cuáles son los pedidos críticos o atrasados?",
-        "¿Puede Pintapack tomar 5000 impresiones urgentes?"
       ];
   }
 };
@@ -157,11 +153,27 @@ const AIAssistant = ({ contextTab = 'tower' }) => {
       `#${p.pedido_id} | ${p.nombre_proyecto} | ${p.taller} | ${p.estado_produccion} | retiro: ${p.fecha_retiro_ideal}`
     ).join('\n');
 
+    // Pedidos con despacho hoy y mañana para contexto de entrega
+    const todayStr = today;
+    const tmrrw = new Date(); tmrrw.setDate(tmrrw.getDate() + 1);
+    const tmrrwStr = `${tmrrw.getFullYear()}-${String(tmrrw.getMonth()+1).padStart(2,'0')}-${String(tmrrw.getDate()).padStart(2,'0')}`;
+    const despachosHoy = mockConsolidatedData.filter(p => p.fecha_entrega === todayStr || p.fecha_entrega_cliente === todayStr);
+    const despachosMañana = mockConsolidatedData.filter(p => p.fecha_entrega === tmrrwStr || p.fecha_entrega_cliente === tmrrwStr);
+
     return `Eres un asistente operativo de la empresa Yute Impresiones. Ayudas al equipo KAM y de operaciones a gestionar pedidos de producción textil/serigrafía.
+
+HORARIOS DE ENTREGA (información crítica — siempre incluir cuando pregunten por hora):
+- Estado "Envío AM Oficina" → llegada aproximada 11:45 hrs en la oficina del cliente
+- Estado "Envío PM Oficina" → llegada aproximada 17:30 hrs en la oficina del cliente
+- Si el estado no especifica AM o PM, indicar que hay que consultar con logística para confirmar horario.
+- Carrier Clickex: entregas en Santiago, misma ruta que define el estado AM/PM.
+- Carrier Starken: envíos a regiones, el tracking está disponible en starken.cl con el número de guía.
 
 DATOS AL ${today}:
 - Pedidos activos: ${activos.length}
 - Pedidos atrasados: ${atrasados}
+- Despachos de hoy: ${despachosHoy.length} (${despachosHoy.map(p => `#${p.pedido_id} ${p.estado_logistico || ''}`).join(', ') || 'ninguno'})
+- Despachos de mañana: ${despachosMañana.length}
 
 CARGA POR TALLER:
 ${tallerResumen}
