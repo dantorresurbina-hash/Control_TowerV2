@@ -246,13 +246,14 @@ export const DataProvider = ({ children }) => {
       )
     );
 
-    if (!SCRIPT_URL) {
-      setSyncQueue((prev) => [...prev, { pedidoId, newStatus, extraData, timestamp: Date.now() }]);
-      return true;
-    }
+    const enqueue = () => setSyncQueue((prev) => {
+      const deduped = prev.filter(item => cleanId(item.pedidoId) !== cleanId(pedidoId));
+      return [...deduped, { pedidoId, newStatus, extraData, timestamp: Date.now() }];
+    });
+
+    if (!SCRIPT_URL) { enqueue(); return { success: true, persisted: false }; }
 
     try {
-      // Usar POST con JSON body (formato GAS v3.1)
       const result = await gasPost({
         action: 'update',
         pedidoId,
@@ -262,11 +263,11 @@ export const DataProvider = ({ children }) => {
         usuario: extraData.usuario || 'Dashboard',
       });
       if (!result.success) throw new Error(result.error || 'Error servidor');
-      return true;
+      return { success: true, persisted: true };
     } catch (err) {
       console.error('[updatePedidoStatus] Encolando para reintento:', err.message);
-      setSyncQueue((prev) => [...prev, { pedidoId, newStatus, extraData, timestamp: Date.now() }]);
-      return true; // Modo offline: éxito local
+      enqueue();
+      return { success: true, persisted: false };
     }
   };
 
@@ -284,15 +285,18 @@ export const DataProvider = ({ children }) => {
       return newData;
     });
 
-    if (!SCRIPT_URL) {
-      updates.forEach((u) =>
-        setSyncQueue((prev) => [...prev, { pedidoId: u.pedidoId, newStatus: u.estado, extraData: u.extraData, timestamp: Date.now() }])
-      );
-      return true;
-    }
+    const enqueueAll = (list) => setSyncQueue((prev) => {
+      let next = [...prev];
+      list.forEach((u) => {
+        next = next.filter(item => cleanId(item.pedidoId) !== cleanId(u.pedidoId));
+        next.push({ pedidoId: u.pedidoId, newStatus: u.estado, extraData: u.extraData, timestamp: Date.now() });
+      });
+      return next;
+    });
+
+    if (!SCRIPT_URL) { enqueueAll(updates); return true; }
 
     try {
-      // GAS v3.1 espera: { action: "batch_update", updates: [...] }
       const result = await gasPost({
         action: 'batch_update',
         updates: updates.map((u) => ({
@@ -305,9 +309,7 @@ export const DataProvider = ({ children }) => {
       return result.success;
     } catch (err) {
       console.error('[updatePedidoStatusBulk] Encolando individualmente:', err.message);
-      updates.forEach((u) =>
-        setSyncQueue((prev) => [...prev, { pedidoId: u.pedidoId, newStatus: u.estado, extraData: u.extraData, timestamp: Date.now() }])
-      );
+      enqueueAll(updates);
       return true;
     }
   };
@@ -358,6 +360,18 @@ export const DataProvider = ({ children }) => {
   // ── CARGA INICIAL ──────────────────────────────────────────
   useEffect(() => {
     fetchData();
+  }, []);
+
+  // ── DETECCIÓN REAL DE ESTADO DE RED ───────────────────────
+  useEffect(() => {
+    const handleOffline = () => setIsLocalStorage(true);
+    const handleOnline  = () => fetchData();
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online',  handleOnline);
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online',  handleOnline);
+    };
   }, []);
 
   // ── DATA FILTRADA (sin anulados, sin filas vacías) ─────────
