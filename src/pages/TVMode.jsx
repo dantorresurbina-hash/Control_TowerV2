@@ -3,7 +3,7 @@ import { useData, getLocalYMD } from '../context/DataContext';
 import { AlertCircle, Truck, Package, Clock, TrendingUp, Monitor, CheckCircle } from 'lucide-react';
 
 const TVMode = () => {
-  const { data: mockConsolidatedData, isLoading, lastSync } = useData();
+  const { data: mockConsolidatedData, talleres, isLoading, lastSync } = useData();
   const [view, setView] = useState('critical'); // 'critical', 'logistics', 'summary'
   const [time, setTime] = useState(new Date().toLocaleTimeString());
 
@@ -186,7 +186,7 @@ const TVMode = () => {
               <div className="col-span-2 bg-slate-900 rounded-3xl p-8 border border-slate-800 flex flex-col">
                 <h3 className="text-3xl font-black text-slate-300 mb-6 uppercase tracking-tight border-b border-slate-800 pb-4">Salud de Talleres</h3>
                 <div className="flex-1 space-y-6">
-                  {['Yute Impresiones', 'Lidi', 'Pintapack', 'Ideamania'].map(tallerName => {
+                  {(talleres || []).map(t => t.nombre).map(tallerName => {
                     const pedidosTaller = mockConsolidatedData.filter(p=>!p.fecha_retiro_real && p.taller === tallerName);
                     const atrasoTotal = pedidosTaller.reduce((acc, p) => acc + (p.dias_retraso > 0 ? p.dias_retraso : 0), 0);
                     const count = pedidosTaller.length;

@@ -8,6 +8,13 @@ import { SECURITY_CONFIG } from '../config/security';
 
 const CLIENT_SALT = SECURITY_CONFIG.CLIENT_SALT;
 
+// Yute Impresiones stays full; every other workshop shows initials only
+const tallerAbrev = (name) => {
+  if (!name) return 'N/A';
+  if (name === 'Yute Impresiones') return name;
+  return name.split(/\s+/).map(w => w[0]).join('').toUpperCase() || name;
+};
+
 const generateSignature = (id, bulto, total) =>
   CryptoJS.HmacSHA256(`${id}-${bulto}-${total}`, CLIENT_SALT)
     .toString(CryptoJS.enc.Hex)
@@ -47,7 +54,7 @@ const LabelPreview = ({ pedido, editData, bultoNum, totalBultos }) => {
             </div>
             <div>
               <p className="text-[8px] font-bold text-slate-400 uppercase">Taller</p>
-              <p className="text-[10px] font-bold text-slate-700">{editData?.taller || pedido.taller || 'N/A'}</p>
+              <p className="text-[10px] font-bold text-slate-700">{tallerAbrev(editData?.taller || pedido.taller)}</p>
             </div>
             {editData?.tecnica && (
               <div>
@@ -205,7 +212,7 @@ const LabelGenerator = ({ pedidos, specificBulto = null, onClose, onComplete }) 
         doc.setFontSize(7.5); doc.setTextColor(120);
         doc.text('TALLER:', 5, 64);
         doc.setFontSize(10); doc.setTextColor(0);
-        doc.text((ed.taller || p.taller || 'N/A').toUpperCase(), 5, 70);
+        doc.text(tallerAbrev(ed.taller || p.taller).toUpperCase(), 5, 70);
 
         // Técnica / detalles
         const tecnica  = ed.tecnica  || '';

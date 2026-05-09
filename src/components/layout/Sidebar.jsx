@@ -44,12 +44,12 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, openSettings }) =
 
   return (
     <aside
-      className={`bg-slate-900 text-slate-300 w-64 flex-shrink-0 flex flex-col transition-all duration-300 fixed inset-y-0 left-0 z-[70] md:relative md:inset-0 md:z-0 ${
+      className={`bg-[#1e1b4b] text-indigo-200 w-64 flex-shrink-0 flex flex-col transition-all duration-300 fixed inset-y-0 left-0 z-[70] md:relative md:inset-0 md:z-0 ${
         isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}
     >
       {/* Logo */}
-      <div className="h-16 flex items-center px-6 border-b border-slate-800 shrink-0">
+      <div className="h-16 flex items-center px-6 border-b border-indigo-900/60 shrink-0">
         <div className="w-8 h-8 rounded bg-accent grid place-items-center text-white font-bold mr-3">
           <span>CT</span>
         </div>
@@ -86,11 +86,11 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, openSettings }) =
                 }}
                 className={`w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-colors ${
                   isActive
-                    ? 'bg-accent-bg text-accent'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                    ? 'bg-indigo-500/20 text-white'
+                    : 'text-indigo-300 hover:bg-indigo-500/10 hover:text-white'
                 }`}
               >
-                <Icon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive ? 'text-accent' : 'text-slate-500'}`} />
+                <Icon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive ? 'text-indigo-300' : 'text-indigo-400/60'}`} />
                 <span>{item.label}</span>
               </button>
             );
@@ -99,9 +99,9 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, openSettings }) =
       </div>
 
       {/* Footer: sync + perfil */}
-      <div className="p-4 border-t border-slate-800 space-y-3">
+      <div className="p-4 border-t border-indigo-900/60 space-y-3">
         {/* Indicador de sync simplificado */}
-        <div className="flex items-center justify-between bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700/50">
+        <div className="flex items-center justify-between bg-indigo-950/50 rounded-lg px-3 py-2 border border-indigo-800/40">
           <div className="flex items-center gap-2">
             {isLoading ? (
               <RefreshCw className="w-3.5 h-3.5 text-indigo-400 animate-spin" />
@@ -126,16 +126,16 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, openSettings }) =
         <div className="flex items-center">
           <div
             className={`w-8 h-8 rounded-full grid place-items-center text-xs font-medium text-white ${
-              userRole === 'admin' ? 'bg-indigo-600' : 'bg-slate-700'
+              userRole === 'admin' ? 'bg-indigo-500' : 'bg-indigo-900'
             }`}
           >
             <UserCircle className="w-5 h-5" />
           </div>
           <div className="ml-3">
-            <p className="text-sm font-medium text-white capitalize">
+            <p className="text-sm font-medium text-indigo-100 capitalize">
               {userRole === 'admin' ? 'Administrador' : 'KAM / Vendedor'}
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-indigo-400">
               {userRole === 'admin' ? 'Gestión Total' : 'Solo Consultas'}
             </p>
           </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { TriangleAlert, AlertCircle, FileWarning, Clock, MessageSquareWarning } from 'lucide-react';
-import { useData, getLocalYMD } from '../context/DataContext';
+import { useData, getLocalYMD, parseNumber } from '../context/DataContext';
 import StatusBadge from '../components/StatusBadge';
 
 const ConflictsAndAlerts = () => {
@@ -17,7 +17,7 @@ const ConflictsAndAlerts = () => {
   }
 
   const today = getLocalYMD();
-  const nextTwoDays = new Date(Date.now() + 172800000).toISOString().split('T')[0];
+  const nextTwoDays = getLocalYMD(new Date(Date.now() + 172800000));
 
   // Algoritmo de detección de conflictos
   const detectConflicts = () => {
@@ -86,7 +86,7 @@ const ConflictsAndAlerts = () => {
     const talleres = getTalleres();
     talleres.forEach(taller => {
       const pedidosTaller = mockConsolidatedData.filter(p => !p.fecha_retiro_real && p.taller === taller.nombre);
-      const impresiones = pedidosTaller.reduce((acc, p) => acc + p.impresiones, 0);
+      const impresiones = pedidosTaller.reduce((acc, p) => acc + parseNumber(p.impresiones), 0);
       const saturacion = (impresiones / taller.capacidad_semanal_impresiones) * 100;
 
       if (saturacion > 85) {

@@ -139,7 +139,40 @@ const AIAssistant = ({ contextTab = 'tower' }) => {
     );
   }
 
-  const handleSend = (presetText) => {
+  const buildSystemContext = () => {
+    const today = getLocalYMD();
+    const activos = mockConsolidatedData.filter(p => !p.fecha_retiro_real);
+    const atrasados = activos.filter(p => p.fecha_retiro_ideal < today).length;
+
+    const tallerResumen = talleres.map(t => {
+      const pedidosTaller = activos.filter(p => p.taller === t.nombre);
+      const imps = pedidosTaller.reduce((a, p) => a + parseNumber(p.impresiones), 0);
+      const pct = t.capacidad_semanal_impresiones > 0
+        ? Math.round((imps / t.capacidad_semanal_impresiones) * 100)
+        : 0;
+      return `${t.nombre}: ${pedidosTaller.length} pedidos, ${imps.toLocaleString()} imp, ${pct}% cap.`;
+    }).join('\n');
+
+    const pedidosSample = activos.slice(0, 30).map(p =>
+      `#${p.pedido_id} | ${p.nombre_proyecto} | ${p.taller} | ${p.estado_produccion} | retiro: ${p.fecha_retiro_ideal}`
+    ).join('\n');
+
+    return `Eres un asistente operativo de la empresa Yute Impresiones. Ayudas al equipo KAM y de operaciones a gestionar pedidos de producción textil/serigrafía.
+
+DATOS AL ${today}:
+- Pedidos activos: ${activos.length}
+- Pedidos atrasados: ${atrasados}
+
+CARGA POR TALLER:
+${tallerResumen}
+
+MUESTRA DE PEDIDOS ACTIVOS (máx 30):
+${pedidosSample}
+
+Responde en español, de forma concisa y directa. Si el usuario pregunta por un pedido específico, busca en los datos. Si hay pedidos atrasados o en riesgo, menciónalos.`;
+  };
+
+  const handleSend = async (presetText) => {
     const textToSend = presetText || input;
     if (!textToSend.trim()) return;
 
@@ -148,85 +181,55 @@ const AIAssistant = ({ contextTab = 'tower' }) => {
     setInput('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      let aiResponseText = "Comprendo. Basado en los datos de Google Sheets, recomiendo revisar el módulo de Capacidad para ver los cuellos de botella específicos.";
-
-      const textLower = textToSend.toLowerCase();
-      const pedidoMatch = textLower.match(/\b\d{5,7}\b/); // Busca números de 5 a 7 dígitos
-
-      if (mockResponses[textToSend]) {
-        aiResponseText = mockResponses[textToSend]();
-      } else if (textLower.includes('comparar') || textLower.includes('vs') || textLower.includes('rendimiento')) {
-        // Generar datos para gráfico de comparación
-        const chartData = talleres.map(t => {
-          const activos = mockConsolidatedData.filter(p => p.taller === t.nombre && !p.fecha_retiro_real);
-          const imps = activos.reduce((acc, p) => acc + (parseNumber(p.impresiones) || parseNumber(p.unidades)), 0);
-          const atraso = activos.reduce((acc, p) => acc + parseNumber(p.dias_retraso), 0) / (activos.length || 1);
-          return { name: t.nombre, impresiones: imps, retraso_promedio: Math.round(atraso * 10) / 10 };
-        });
-
-        newUserMsg.chartData = chartData;
-        newUserMsg.chartType = 'bar';
-        aiResponseText = "He generado un gráfico comparativo de la carga actual y el retraso promedio por taller. Esto te permite identificar visualmente quién está más saturado.";
-      } else if (pedidoMatch) {
-        // V6.21: Lógica de búsqueda de pedido con normalización robusta
-        const rawTargetId = pedidoMatch[0];
-        const targetIdNorm = rawTargetId.replace(/#/g, '').trim();
-        
-        const pedido = mockConsolidatedData.find(p => {
-          const pid = String(p.pedido_id || p.id || '').replace(/#/g, '').trim();
-          return pid === targetIdNorm;
-        });
-
-        if (pedido) {
-          const displayId = pedido.pedido_id || pedido.id || rawTargetId;
-          aiResponseText = `🔍 **Información del Pedido #${displayId}**:\n\n` +
-            `• **Proyecto**: ${pedido.nombre_proyecto || 'Sin nombre'}\n` +
-            `• **Taller**: ${pedido.taller || 'No asignado'}\n` +
-            `• **Estado Prod.**: ${pedido.estado_produccion || 'Pendiente'}\n` +
-            `• **Estado Log.**: ${pedido.estado_logistico || 'No iniciado'}\n` +
-            `• **Retiro Ideal**: ${pedido.fecha_retiro_ideal || 'Sin definir'}\n` +
-            `• **Despacho Cliente**: ${pedido.fecha_entrega_cliente || 'Sin definir'}\n` +
-            `• **Impresiones**: ${(parseNumber(pedido.impresiones) || 0).toLocaleString()}\n\n` +
-            (pedido.fecha_retiro_real
-              ? `✅ El pedido ya fue retirado el ${pedido.fecha_retiro_real}.`
-              : `⏳ Pendiente de retiro. ${parseNumber(pedido.dias_retraso) > 0 ? `⚠️ Presenta **${pedido.dias_retraso} días de atraso**.` : 'Está dentro del plazo.'}`);
-        } else {
-          aiResponseText = `No encontré ningún pedido con el ID **${rawTargetId}** en los datos actuales de Sheets. Verifica si el número es correcto o si el pedido fue anulado.`;
-        }
-      } else if (textLower.includes('capacidad') || textLower.includes('libre') || textLower.includes('disponible')) {
-        aiResponseText = mockResponses["¿Qué talleres tienen capacidad disponible?"]();
-      } else if (textLower.includes('saturado') || textLower.includes('lleno') || textLower.includes('riesgo') || textLower.includes('futuro') || textLower.includes('score')) {
-        aiResponseText = mockResponses["¿Hay riesgo de saturación la próxima semana?"]();
-      } else if (textLower.includes('atrasados') || textLower.includes('críticos') || textLower.includes('vencidos') || textLower.includes('atraso')) {
-        aiResponseText = mockResponses["¿Cuáles son los pedidos críticos o atrasados?"]();
-      } else if (textLower.includes('impresiones') || textLower.includes('derivar') || textLower.includes('tomar')) {
-        aiResponseText = mockResponses["¿Puede Pintapack tomar 5000 impresiones urgentes?"]();
-      } else if (textLower.length > 5) {
-        // Búsqueda por nombre de proyecto
-        const matches = mockConsolidatedData.filter(p =>
-          p.nombre_proyecto.toLowerCase().includes(textLower) ||
-          (p.sku && p.sku.toLowerCase().includes(textLower))
-        ).slice(0, 3);
-
-        if (matches.length > 0) {
-          const list = matches.map(p => `- **#${p.pedido_id}**: ${p.nombre_proyecto} (${p.taller})`).join('\n');
-          aiResponseText = `He encontrado coincidencias para tu búsqueda:\n\n${list}\n\n¿Quieres que profundice en alguno de estos?`;
-        } else {
-          // Búsqueda en Base de Conocimiento (Fase 9)
-          const knowledgeMatch = designKnowledge.find(k =>
-            k.keywords.some(word => textLower.includes(word))
-          );
-
-          if (knowledgeMatch) {
-            aiResponseText = `💡 **Información de Procesos/Diseño**:\n\n${knowledgeMatch.content}`;
-          }
-        }
-      }
-
-      setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: aiResponseText }]);
+    // Respuestas locales instantáneas para comparaciones con gráfico
+    const textLower = textToSend.toLowerCase();
+    if (textLower.includes('comparar') || textLower.includes(' vs ') || textLower.includes('rendimiento')) {
+      const chartData = talleres.map(t => {
+        const activos = mockConsolidatedData.filter(p => p.taller === t.nombre && !p.fecha_retiro_real);
+        const imps = activos.reduce((acc, p) => acc + (parseNumber(p.impresiones) || parseNumber(p.unidades)), 0);
+        const atraso = activos.reduce((acc, p) => acc + parseNumber(p.dias_retraso), 0) / (activos.length || 1);
+        return { name: t.nombre, impresiones: imps, retraso_promedio: Math.round(atraso * 10) / 10 };
+      });
+      newUserMsg.chartData = chartData;
+      newUserMsg.chartType = 'bar';
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        role: 'ai',
+        text: 'He generado un gráfico comparativo de la carga actual y el retraso promedio por taller.',
+        chartData,
+        chartType: 'bar',
+      }]);
       setIsTyping(false);
-    }, 1200);
+      return;
+    }
+
+    // Respuestas predefinidas locales (sin latencia de API)
+    if (mockResponses[textToSend]) {
+      const text = mockResponses[textToSend]();
+      setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text }]);
+      setIsTyping(false);
+      return;
+    }
+
+    // Llamada a Anthropic Claude vía /api/chat
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: textToSend, systemContext: buildSystemContext() }),
+      });
+      const json = await res.json();
+      const aiText = json.text || json.error || 'Sin respuesta del servidor.';
+      setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: aiText }]);
+    } catch {
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        role: 'ai',
+        text: 'Error de conexión con el asistente IA. Verifica que ANTHROPIC_API_KEY esté configurada en Vercel.',
+      }]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   return (

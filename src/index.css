@@ -3,11 +3,18 @@
 @theme {
   --font-sans: "Inter", system-ui, sans-serif;
   --font-heading: "Outfit", system-ui, sans-serif;
-  
-  --color-dash-bg: #f8fafc;
+
+  /* Fondo y tarjetas — lavanda muy suave */
+  --color-dash-bg: #f0f2fa;
   --color-dash-card: #ffffff;
-  --color-dash-border: #e2e8f0;
-  
+  --color-dash-border: #dde2f0;
+
+  /* Acento principal — índigo pastel */
+  --color-accent: #6366f1;
+  --color-accent-bg: #eef2ff;
+  --color-accent-border: #c7d2fe;
+
+  /* Estados */
   --color-status-red: #ef4444;
   --color-status-yellow: #f59e0b;
   --color-status-green: #10b981;

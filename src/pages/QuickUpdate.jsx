@@ -28,8 +28,8 @@ const QuickUpdate = ({ pedidoId }) => {
   const [comentario, setComentario] = useState('');
 
   // Listas de personal solicitadas por Daniel
-  const STAFF_PICKING = ["Miguel Cardozo", "Otro"].sort((a, b) => a === "Otro" ? 1 : b === "Otro" ? -1 : a.localeCompare(b));
-  const STAFF_IMPRESION = ["Gabriel Acevedo", "Dillan Hernández", "Ricardo Hernández", "Miguel Palominos", "Otro"].sort((a, b) => a === "Otro" ? 1 : b === "Otro" ? -1 : a.localeCompare(b));
+  const STAFF_PICKING = ["Manuel Cardozo", "Otro"].sort((a, b) => a === "Otro" ? 1 : b === "Otro" ? -1 : a.localeCompare(b));
+  const STAFF_IMPRESION = ["Gabriel Acevedo", "Dillan Hernández", "Ricardo Hernández", "Miguel Palomino", "Otro"].sort((a, b) => a === "Otro" ? 1 : b === "Otro" ? -1 : a.localeCompare(b));
 
   // Función de validación
   const verifyAuthenticity = () => {
@@ -66,14 +66,14 @@ const QuickUpdate = ({ pedidoId }) => {
 
       // 2. Si no ha cargado la data global, o no está ahí, hacer fetch INDIVIDUAL (Ultra rápido)
       try {
-        const cleanId = String(pedidoId).replace(/#/g, '').trim();
-        
-        if (!cleanId || cleanId === 'undefined') {
+        const cleanedId = String(pedidoId).replace(/#/g, '').trim();
+
+        if (!cleanedId || cleanedId === 'undefined') {
           setError('ID de pedido inválido. Por favor escanea el QR nuevamente.');
           return;
         }
 
-        const response = await fetch(`${SCRIPT_URL}?pedidoId=${cleanId}&t=${Date.now()}`, {
+        const response = await fetch(`${SCRIPT_URL}?pedidoId=${cleanedId}&t=${Date.now()}`, {
           method: 'GET',
           mode: 'cors',
           credentials: 'omit',
@@ -83,7 +83,7 @@ const QuickUpdate = ({ pedidoId }) => {
         if (result.success && result.data && result.data.length > 0) {
           setPedido(result.data[0]);
         } else if (!isLoading) {
-          setError(`No se encontró el pedido #${cleanId} en el sistema.`);
+          setError(`No se encontró el pedido #${cleanedId} en el sistema.`);
         }
       } catch (err) {
         console.error("Fetch Error:", err);
@@ -97,11 +97,12 @@ const QuickUpdate = ({ pedidoId }) => {
   const handleUpdate = async (newStatus, extraData = {}) => {
     const isPrintingStep = newStatus === 'En Proceso' || newStatus === 'Listo Impresor';
     const isPickingStep = newStatus === 'Asignado' || newStatus === 'Listo Taller';
-    
+    const isYuteTaller = pedido ? String(pedido.taller || '').toLowerCase().includes('yute') : false;
+
     let nombreFinal = isPrintingStep ? impresor : operario;
     if (nombreFinal === 'Otro') nombreFinal = nombreManual;
 
-    if (isYute && !nombreFinal) {
+    if (isYuteTaller && !nombreFinal) {
       alert("Por favor selecciona o escribe tu nombre antes de continuar.");
       return;
     }

@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { useData } from '../context/DataContext';
-import { Search, ExternalLink, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { Search, ExternalLink, ChevronUp, ChevronDown, ChevronsUpDown, Pencil } from 'lucide-react';
 
 // ── Normalización ─────────────────────────────────────────────
 const norm = (s) =>
@@ -55,13 +55,16 @@ const COLS = [
 ];
 
 const KamLogistica = () => {
-  const { data, userRole } = useData();
+  const { data, userRole, updatePedidoStatus } = useData();
 
   const [search,    setSearch]    = useState('');
   const [filterVendedor, setFilterVendedor] = useState('todos');
   const [filterEstado,   setFilterEstado]   = useState('activos');
   const [sortCol, setSortCol]   = useState('fecha_retiro_ideal');
   const [sortDir, setSortDir]   = useState('asc');
+  const [editingKey, setEditingKey] = useState(null);
+  const [editValue,  setEditValue]  = useState('');
+  const inputRef = useRef(null);
 
   // Dedup por pedido_id + nombre_proyecto
   const dedupedData = useMemo(() => {
@@ -121,6 +124,22 @@ const KamLogistica = () => {
   const handleSort = (key) => {
     if (sortCol === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortCol(key); setSortDir('asc'); }
+  };
+
+  const startEditComment = (p) => {
+    const key = `${p.pedido_id}|${p.nombre_proyecto}`;
+    setEditingKey(key);
+    setEditValue(p.comentario_kam || '');
+    setTimeout(() => inputRef.current?.focus(), 30);
+  };
+
+  const saveComment = async (p) => {
+    const val = editValue.trim();
+    setEditingKey(null);
+    await updatePedidoStatus(p.pedido_id, p.estado_produccion, {
+      comentario_kam: val,
+      cells: { M: val },
+    });
   };
 
   const SortIcon = ({ col }) => {
@@ -289,16 +308,32 @@ const KamLogistica = () => {
                     ) : '–'}
                   </td>
 
-                  {/* Comentario KAM */}
+                  {/* Comentario KAM — editable inline */}
                   <td className="px-3 py-2.5 max-w-[208px]">
-                    {p.comentario_kam ? (
-                      <span
-                        className="text-xs text-slate-600 block truncate"
-                        title={p.comentario_kam}
+                    {editingKey === `${p.pedido_id}|${p.nombre_proyecto}` ? (
+                      <input
+                        ref={inputRef}
+                        className="w-full text-xs border border-blue-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-400"
+                        value={editValue}
+                        onChange={e => setEditValue(e.target.value)}
+                        onBlur={() => saveComment(p)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') saveComment(p);
+                          if (e.key === 'Escape') setEditingKey(null);
+                        }}
+                      />
+                    ) : (
+                      <button
+                        className="group flex items-center gap-1 text-left w-full"
+                        title="Clic para editar comentario"
+                        onClick={() => startEditComment(p)}
                       >
-                        {p.comentario_kam}
-                      </span>
-                    ) : '–'}
+                        <span className="text-xs text-slate-600 truncate block max-w-[180px]">
+                          {p.comentario_kam || <span className="text-slate-300 italic">Agregar comentario…</span>}
+                        </span>
+                        <Pencil size={10} className="shrink-0 text-slate-300 group-hover:text-blue-400 transition-colors" />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))

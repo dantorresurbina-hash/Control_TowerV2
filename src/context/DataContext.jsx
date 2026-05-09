@@ -276,7 +276,7 @@ export const DataProvider = ({ children }) => {
       let newData = [...(prev || [])];
       updates.forEach((u) => {
         newData = newData.map((p) =>
-          String(p.pedido_id || p.id) === String(u.pedidoId)
+          cleanId(p.pedido_id || p.id) === cleanId(u.pedidoId)
             ? { ...p, estado_produccion: u.estado, ...u.extraData }
             : p
         );
