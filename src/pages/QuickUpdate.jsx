@@ -29,7 +29,7 @@ const QuickUpdate = ({ pedidoId }) => {
 
   // Listas de personal solicitadas por Daniel
   const STAFF_PICKING = ["Manuel Cardozo", "Otro"].sort((a, b) => a === "Otro" ? 1 : b === "Otro" ? -1 : a.localeCompare(b));
-  const STAFF_IMPRESION = ["Gabriel Acevedo", "Dillan Hernández", "Ricardo Hernández", "Miguel Palomino", "Otro"].sort((a, b) => a === "Otro" ? 1 : b === "Otro" ? -1 : a.localeCompare(b));
+  const STAFF_IMPRESION = ["Miguel Palomino", "Manuel Cardozo", "Dillan Hernández", "Ricardo Hernández", "Gabriel Acevedo", "Otro"].sort((a, b) => a === "Otro" ? 1 : b === "Otro" ? -1 : a.localeCompare(b));
 
   // Función de validación
   const verifyAuthenticity = () => {
