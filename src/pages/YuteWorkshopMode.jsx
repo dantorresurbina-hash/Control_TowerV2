@@ -345,7 +345,7 @@ const ActionBtn = ({ color, icon: Icon, label, sub, onClick }) => {
 // ─── Vista principal ──────────────────────────────────────────────────────────
 
 const STAFF_PICKING   = ['Manuel Cardozo', 'Otro'];
-const STAFF_IMPRESION = ['Gabriel Acevedo', 'Dillan Hernández', 'Ricardo Hernández', 'Miguel Palomino', 'Otro'];
+const STAFF_IMPRESION = ['Manuel Cardozo', 'Miguel Palomino', 'Otro'];
 
 const YuteWorkshopMode = () => {
   const { data, updatePedidoStatus } = useData();

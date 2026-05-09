@@ -401,22 +401,13 @@ const DispatchGuide = () => {
 
   const handleConfirmReceipt = async (proyectosConfirmados, recibidoPor, notas) => {
     const fecha = new Date().toISOString();
-    await Promise.all(
-      proyectosConfirmados.map(p =>
-        updatePedidoStatus(p.pedido_id, 'En Proceso', {
-          estado_logistico: 'En preparación',
-          recibido_por: recibidoPor || 'Sin registrar',
-          fecha_recepcion_taller: fecha,
-          ...(notas ? { comentario_recepcion: notas } : {}),
-        })
-      )
-    );
     setReceiptLog(prev => ({
       ...prev,
       [receiptModal.nombreTaller]: {
         ts: fecha,
         count: proyectosConfirmados.length,
         by: recibidoPor || null,
+        notas: notas || null,
       }
     }));
   };
