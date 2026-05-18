@@ -231,7 +231,10 @@ Responde en español, de forma concisa y directa. Si hay pedidos atrasados o en 
       return;
     }
 
-    // Búsqueda local de pedido por número (inyecta datos completos en el mensaje)
+    // Normalización para búsquedas locales
+    const normStr = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+
+    // Búsqueda local de pedido por número
     const pedidoMatch = textToSend.match(/\b\d{5,7}\b/);
     let messageWithContext = textToSend;
     if (pedidoMatch) {
@@ -255,6 +258,25 @@ DATOS DEL PEDIDO #${pedido.pedido_id} (encontrado en el sistema):
 - Unidades: ${pedido.unidades || '-'}
 - Vendedor/KAM: ${pedido.vendedor || '-'}
 - Comentario KAM: ${pedido.comentario_kam || '-'}`;
+      }
+    }
+
+    // Búsqueda por nombre de KAM (inyecta todos sus pedidos activos)
+    if (!pedidoMatch) {
+      const textNorm = normStr(textToSend);
+      const kamMatches = mockConsolidatedData.filter(p => {
+        const v = normStr(p.vendedor);
+        return v && v.length > 2 && textNorm.includes(v);
+      });
+      if (kamMatches.length > 0) {
+        const kamNombre = kamMatches[0].vendedor;
+        const resumen = kamMatches.slice(0, 40).map(p =>
+          `#${p.pedido_id} | ${p.nombre_proyecto} | ${p.taller} | prod: ${p.estado_produccion} | log: ${p.estado_logistico} | retiro: ${p.fecha_retiro_ideal || '-'} | entrega: ${p.fecha_entrega_cliente || p.fecha_entrega || '-'}`
+        ).join('\n');
+        messageWithContext = `${textToSend}
+
+PEDIDOS DE KAM "${kamNombre}" (${kamMatches.length} en total, mostrando hasta 40):
+${resumen}`;
       }
     }
 
