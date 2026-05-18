@@ -287,10 +287,15 @@ function getConsolidatedData() {
                    || row.vbcliente === true || String(row.vbcliente || "").toLowerCase() === "true",
           fecha_vb:                formatYMD(row.fechavb || row.inicioimpresion),
           fecha_retiro_ideal:      formatYMD(row.fecharetirotallerideal || row.fecharetiroideal || row.retiroideal
-                                          || row.entregaestimada || row.fechaentrega || row.fecharetiro
-                                          || row.entrega || row.retiro),
+                                          || row.entregaestimada || row.fecharetiro
+                                          || row.entrega || row.retiro
+                                          || row.fechaestimadaderetiro || row.fechaestimada
+                                          || row.entregaataller || row.fecharetiroataller),
           fecha_retiro_real:       formatYMD(row.fecharetiroreal || row.fecharealderetiro || row.retirotaller),
           fecha_entrega:           formatYMD(row.fechaentrega || row.fechadeentrega || row.fechadadespacho),
+          fecha_entrega_cliente:   formatYMD(row.fechaentregacliente || row.despachocliente || row.entregacliente
+                                          || row.fechadespachoalcliente || row.despachoclientepropuesto
+                                          || row.fechaentrega || row.fechadeentrega || row.fechadadespacho || ""),
           canal:                   row.canal || row.metodo || row.metodoventa || "",
           metodo_entrega:          row.metodoentrega || row.metododeentrega || "",
           comentario_kam:          row.comentarioskam || row.comentariokam || "",
@@ -334,10 +339,19 @@ function getConsolidatedData() {
                               row.despachodeentregareal || row.despachoentregareal ||
                               row.despachorealentrega   || row.fechadespacho       || ""
                             ),
+          fecha_entrega_cliente: formatYMD(
+                              row.despachoclientepropuesto || row.fechaentregacliente ||
+                              row.entregacliente           || row.despachocliente     ||
+                              row.fechacomprometida        || row.fechapropuesta      ||
+                              row.promesadeentrega         || ""
+                            ),
           metodo_entrega:   row.metododeentrega   || row.metodoentrega    || "",
           vendedor:         row.vendedor          || row.kam              || "",
           documento:        row.documentos        || row.documento        || "",
           comentario_kam:   row.comentariokam     || row.comentarioskam   || "",
+          estado_envio:     row.estadoenvio       || row.estadodeenvio    || row.estadocarrier || "",
+          tracking:         row.tracking          || row.nrotracking      || row.numeroguia
+                            || row.guia           || row.trackingcode     || "",
         };
       });
       // Enriquecer allData con los campos logísticos
@@ -345,13 +359,16 @@ function getConsolidatedData() {
         const lp = logMap[normalizeKey(p.pedido_id)] || {};
         return {
           ...p,
-          canal:            lp.canal            || p.canal            || "",
-          estado_logistico: lp.estado_logistico || p.estado_logistico || "",
-          fecha_entrega:    lp.fecha_entrega    || p.fecha_entrega    || "",
-          metodo_entrega:   lp.metodo_entrega   || p.metodo_entrega   || "",
-          vendedor:         lp.vendedor         || p.vendedor         || "",
-          documento:        lp.documento        || p.documento        || "",
-          comentario_kam:   lp.comentario_kam   || p.comentario_kam   || "",
+          canal:                 lp.canal                 || p.canal                 || "",
+          estado_logistico:      lp.estado_logistico      || p.estado_logistico      || "",
+          fecha_entrega:         lp.fecha_entrega         || p.fecha_entrega         || "",
+          fecha_entrega_cliente: lp.fecha_entrega_cliente || p.fecha_entrega_cliente || "",
+          metodo_entrega:        lp.metodo_entrega        || p.metodo_entrega        || "",
+          vendedor:              lp.vendedor              || p.vendedor              || "",
+          documento:             lp.documento             || p.documento             || "",
+          comentario_kam:        lp.comentario_kam        || p.comentario_kam        || "",
+          estado_envio:          lp.estado_envio          || p.estado_envio          || "",
+          tracking:              lp.tracking              || p.tracking              || "",
         };
       });
       console.log(`[Logística] merge OK — ${Object.keys(logMap).length} filas`);

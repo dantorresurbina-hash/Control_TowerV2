@@ -92,17 +92,31 @@ const KamLogistica = () => {
     });
   }, [data]);
 
-  // Lista de vendedores únicos
+  // Lista de vendedores únicos — deduplicados por nombre normalizado, mostrados en title case
   const vendedores = useMemo(() => {
-    const set = new Set(dedupedData.map(p => p.vendedor).filter(Boolean));
-    return ['todos', ...Array.from(set).sort()];
+    const seen = new Map(); // norm → primer valor encontrado en title case
+    dedupedData.forEach(p => {
+      if (!p.vendedor) return;
+      const n = norm(p.vendedor);
+      if (!seen.has(n)) {
+        const label = p.vendedor
+          .toLowerCase()
+          .replace(/\b\w/g, c => c.toUpperCase());
+        seen.set(n, label);
+      }
+    });
+    const sorted = Array.from(seen.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+    return [
+      { value: 'todos', label: 'Todos los KAM' },
+      ...sorted.map(([n, label]) => ({ value: n, label })),
+    ];
   }, [dedupedData]);
 
   // Filtrado
   const filtered = useMemo(() => {
     return dedupedData.filter(p => {
-      // Filtro vendedor
-      if (filterVendedor !== 'todos' && norm(p.vendedor) !== norm(filterVendedor)) return false;
+      // Filtro vendedor (comparación por nombre normalizado)
+      if (filterVendedor !== 'todos' && norm(p.vendedor) !== filterVendedor) return false;
 
       // Filtro estado
       const el = norm(p.estado_logistico);
@@ -202,7 +216,7 @@ const KamLogistica = () => {
           onChange={e => setFilterVendedor(e.target.value)}
         >
           {vendedores.map(v => (
-            <option key={v} value={v}>{v === 'todos' ? 'Todos los KAM' : v}</option>
+            <option key={v.value} value={v.value}>{v.label}</option>
           ))}
         </select>
       </div>
