@@ -149,16 +149,18 @@ const AIAssistant = ({ contextTab = 'tower' }) => {
       return `${t.nombre}: ${pedidosTaller.length} pedidos, ${imps.toLocaleString()} imp, ${pct}% cap.`;
     }).join('\n');
 
-    const pedidosSample = activos.slice(0, 30).map(p =>
-      `#${p.pedido_id} | ${p.nombre_proyecto} | ${p.taller} | ${p.estado_produccion} | retiro: ${p.fecha_retiro_ideal}`
-    ).join('\n');
+    const atrasadosList = activos
+      .filter(p => p.fecha_retiro_ideal && p.fecha_retiro_ideal < today)
+      .map(p => `#${p.pedido_id} | ${p.nombre_proyecto} | ${p.taller} | ${p.estado_produccion} | retiro: ${p.fecha_retiro_ideal}`)
+      .join('\n') || 'Ninguno';
 
-    // Pedidos con despacho hoy y mañana para contexto de entrega
-    const todayStr = today;
     const tmrrw = new Date(); tmrrw.setDate(tmrrw.getDate() + 1);
     const tmrrwStr = `${tmrrw.getFullYear()}-${String(tmrrw.getMonth()+1).padStart(2,'0')}-${String(tmrrw.getDate()).padStart(2,'0')}`;
-    const despachosHoy = mockConsolidatedData.filter(p => p.fecha_entrega === todayStr || p.fecha_entrega_cliente === todayStr);
-    const despachosMañana = mockConsolidatedData.filter(p => p.fecha_entrega === tmrrwStr || p.fecha_entrega_cliente === tmrrwStr);
+    const despachosHoy     = mockConsolidatedData.filter(p => p.fecha_entrega === today || p.fecha_entrega_cliente === today);
+    const despachosMañana  = mockConsolidatedData.filter(p => p.fecha_entrega === tmrrwStr || p.fecha_entrega_cliente === tmrrwStr);
+
+    const fmtDespacho = (p) =>
+      `#${p.pedido_id} | ${p.nombre_proyecto} | ${p.estado_logistico || '-'} | entrega: ${p.fecha_entrega || p.fecha_entrega_cliente || '-'}`;
 
     return `Eres un asistente operativo de la empresa Yute Impresiones. Ayudas al equipo KAM y de operaciones a gestionar pedidos de producción textil/serigrafía.
 
@@ -170,18 +172,24 @@ HORARIOS DE ENTREGA (información crítica — siempre incluir cuando pregunten 
 - Carrier Starken: envíos a regiones, el tracking está disponible en starken.cl con el número de guía.
 
 DATOS AL ${today}:
-- Pedidos activos: ${activos.length}
+- Pedidos activos (sin retirar): ${activos.length}
 - Pedidos atrasados: ${atrasados}
-- Despachos de hoy: ${despachosHoy.length} (${despachosHoy.map(p => `#${p.pedido_id} ${p.estado_logistico || ''}`).join(', ') || 'ninguno'})
+- Despachos de hoy: ${despachosHoy.length}
 - Despachos de mañana: ${despachosMañana.length}
 
 CARGA POR TALLER:
 ${tallerResumen}
 
-MUESTRA DE PEDIDOS ACTIVOS (máx 30):
-${pedidosSample}
+PEDIDOS ATRASADOS:
+${atrasadosList}
 
-Responde en español, de forma concisa y directa. Si el usuario pregunta por un pedido específico, busca en los datos. Si hay pedidos atrasados o en riesgo, menciónalos.`;
+DESPACHOS DE HOY:
+${despachosHoy.map(fmtDespacho).join('\n') || 'Ninguno'}
+
+DESPACHOS DE MAÑANA:
+${despachosMañana.map(fmtDespacho).join('\n') || 'Ninguno'}
+
+Responde en español, de forma concisa y directa. Si hay pedidos atrasados o en riesgo, menciónalos. Si preguntan por un pedido específico, el mensaje del usuario ya incluirá sus datos completos.`;
   };
 
   const handleSend = async (presetText) => {
@@ -223,12 +231,39 @@ Responde en español, de forma concisa y directa. Si el usuario pregunta por un 
       return;
     }
 
+    // Búsqueda local de pedido por número (inyecta datos completos en el mensaje)
+    const pedidoMatch = textToSend.match(/\b\d{5,7}\b/);
+    let messageWithContext = textToSend;
+    if (pedidoMatch) {
+      const targetId = pedidoMatch[0].replace(/#/g, '').trim();
+      const pedido = mockConsolidatedData.find(p =>
+        String(p.pedido_id || p.id || '').replace(/#/g, '').trim() === targetId
+      );
+      if (pedido) {
+        messageWithContext = `${textToSend}
+
+DATOS DEL PEDIDO #${pedido.pedido_id} (encontrado en el sistema):
+- Proyecto: ${pedido.nombre_proyecto || '-'}
+- Cliente: ${pedido.cliente || '-'}
+- Taller: ${pedido.taller || '-'}
+- Estado producción: ${pedido.estado_produccion || '-'}
+- Estado logístico: ${pedido.estado_logistico || '-'}
+- Retiro ideal: ${pedido.fecha_retiro_ideal || '-'}
+- Retiro real: ${pedido.fecha_retiro_real || 'Pendiente'}
+- Entrega cliente: ${pedido.fecha_entrega_cliente || pedido.fecha_entrega || '-'}
+- VB cliente: ${pedido.vb_cliente ? 'Sí' : 'No'}
+- Unidades: ${pedido.unidades || '-'}
+- Vendedor/KAM: ${pedido.vendedor || '-'}
+- Comentario KAM: ${pedido.comentario_kam || '-'}`;
+      }
+    }
+
     // Llamada a Anthropic Claude vía /api/chat
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: textToSend, systemContext: buildSystemContext() }),
+        body: JSON.stringify({ message: messageWithContext, systemContext: buildSystemContext() }),
       });
       const json = await res.json();
       const aiText = json.text || json.error || 'Sin respuesta del servidor.';
