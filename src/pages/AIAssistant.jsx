@@ -261,22 +261,42 @@ DATOS DEL PEDIDO #${pedido.pedido_id} (encontrado en el sistema):
       }
     }
 
-    // Búsqueda por nombre de KAM (inyecta todos sus pedidos activos)
+    // Búsqueda por nombre de KAM (solo pedidos activos/pendientes)
     if (!pedidoMatch) {
       const textNorm = normStr(textToSend);
-      const kamMatches = mockConsolidatedData.filter(p => {
-        const v = normStr(p.vendedor);
-        return v && v.length > 2 && textNorm.includes(v);
-      });
-      if (kamMatches.length > 0) {
-        const kamNombre = kamMatches[0].vendedor;
-        const resumen = kamMatches.slice(0, 40).map(p =>
-          `#${p.pedido_id} | ${p.nombre_proyecto} | ${p.taller} | prod: ${p.estado_produccion} | log: ${p.estado_logistico} | retiro: ${p.fecha_retiro_ideal || '-'} | entrega: ${p.fecha_entrega_cliente || p.fecha_entrega || '-'}`
-        ).join('\n');
+      // Encontrar el KAM mencionado comparando contra vendedores únicos del dataset
+      const vendedoresUnicos = [...new Set(mockConsolidatedData.map(p => p.vendedor).filter(Boolean))];
+      const kamEncontrado = vendedoresUnicos.find(v => textNorm.includes(normStr(v)) && normStr(v).length > 3);
+
+      if (kamEncontrado) {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const todosSuyos = mockConsolidatedData.filter(p => normStr(p.vendedor) === normStr(kamEncontrado));
+
+        const ESTADOS_FINALES = ['entregado', 'anulado', 'enviado'];
+        const pendientes = todosSuyos.filter(p => {
+          const el = normStr(p.estado_logistico);
+          const ep = normStr(p.estado_produccion);
+          return !ESTADOS_FINALES.some(e => el.includes(e) || ep.includes(e));
+        });
+
+        const atrasados = pendientes.filter(p => p.fecha_retiro_ideal && p.fecha_retiro_ideal < todayStr);
+        const sinVB     = pendientes.filter(p => !p.vb_cliente);
+
+        const fmtPedido = p =>
+          `#${p.pedido_id} | ${p.nombre_proyecto} | ${p.taller || 'Sin taller'} | ${p.estado_produccion} | ${p.estado_logistico || '-'} | retiro: ${p.fecha_retiro_ideal || '-'} | entrega: ${p.fecha_entrega_cliente || p.fecha_entrega || '-'}`;
+
         messageWithContext = `${textToSend}
 
-PEDIDOS DE KAM "${kamNombre}" (${kamMatches.length} en total, mostrando hasta 40):
-${resumen}`;
+DATOS KAM "${kamEncontrado}" (total en sistema: ${todosSuyos.length}):
+- Pendientes activos (sin entregar/anular): ${pendientes.length}
+- Atrasados (retiro ideal < hoy): ${atrasados.length}
+- Sin VB cliente: ${sinVB.length}
+
+PEDIDOS PENDIENTES (máx 40):
+${pendientes.slice(0, 40).map(fmtPedido).join('\n') || 'Ninguno'}${atrasados.length > 0 ? `
+
+ATRASADOS:
+${atrasados.map(fmtPedido).join('\n')}` : ''}`;
       }
     }
 
